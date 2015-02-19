@@ -22,6 +22,7 @@ import javax.xml.xpath.XPathFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.opentok.exception.OpenTokException;
@@ -49,8 +50,7 @@ public class OpenTok {
     private int apiKey;
     private String apiSecret;
     protected HttpClient client;
-    static protected ObjectReader archiveReader = new ObjectMapper()
-            .reader(Archive.class);
+    protected ObjectReader archiveReader;
 
     /**
      * Creates an OpenTok object.
@@ -70,6 +70,10 @@ public class OpenTok {
         this.client = new HttpClient.Builder(apiKey, apiSecret)
                 .apiUrl(apiUrl)
                 .build();
+        InjectableValues injectClient = new InjectableValues.Std().addValue("client", this.client);
+        this.archiveReader = new ObjectMapper()
+                .reader(Archive.class)
+                .with(injectClient);
     }
 
     /**

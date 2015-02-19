@@ -7,11 +7,10 @@
  */
 package com.opentok;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.opentok.exception.RequestException;
+import com.opentok.util.HttpClient;
 
 /**
 * Represents an archive of an OpenTok session. 
@@ -70,6 +69,8 @@ public class Archive {
     @JsonProperty private int size = 0;
     @JsonProperty private Status status;
     @JsonProperty private String url;
+
+    @JacksonInject("client") private HttpClient client;
 
     protected Archive() {
     }
@@ -164,6 +165,12 @@ public class Archive {
             return "";
         }
         
+    }
+
+    // TODO: this mutates state, update based on JSON
+    public void stop() throws RequestException {
+        String newJson = this.client.stopArchive(this.id);
+        // check out ObjectReader.withValueToUpdate()
     }
 
 }

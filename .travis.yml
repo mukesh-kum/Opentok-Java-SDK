@@ -12,3 +12,4 @@ before_script:
   # - export JAVA_OPTS="$JAVA_OPTS -Xmx1024m"
   - export JAVA_OPTS="-Xmx1024m"
   - echo $JAVA_OPTS
+

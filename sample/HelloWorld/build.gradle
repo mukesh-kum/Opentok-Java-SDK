@@ -12,5 +12,5 @@ dependencies {
     compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.6'
 }
 
-run.systemProperty 'API_KEY', ''
-run.systemProperty 'API_SECRET', ''
+run.systemProperty 'API_KEY', "$System.env.API_KEY" != "null" ? "$System.env.API_KEY" : ''
+run.systemProperty 'API_SECRET', "$System.env.API_SECRET" != "null" ? "$System.env.API_SECRET" : ''

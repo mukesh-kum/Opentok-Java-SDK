@@ -23,6 +23,14 @@ public class HelloWorldServer {
             System.exit(-1);
         }
 
+        int listeningPort;
+        try {
+            listeningPort = Integer.valueOf(System.getenv("PORT"));
+        } catch (NumberFormatException nfe) {
+            listeningPort = 4567;
+        }
+        setPort(listeningPort);
+
         opentok = new OpenTok(Integer.parseInt(apiKey), apiSecret);
 
         sessionId = opentok.createSession().getSessionId();

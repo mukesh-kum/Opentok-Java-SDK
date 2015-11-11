@@ -41,8 +41,6 @@ public class HelloWorldServer {
             @Override
             public ModelAndView handle(Request request, Response response) {
 
-                System.out.println("Request recieved");
-
                 String token = null;
                 try {
                     token = opentok.generateToken(sessionId);

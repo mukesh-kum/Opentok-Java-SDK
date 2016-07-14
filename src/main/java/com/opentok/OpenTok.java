@@ -14,23 +14,27 @@ import java.net.Proxy;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.xml.sax.InputSource;
+
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.opentok.exception.OpenTokException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.opentok.exception.InvalidArgumentException;
+import com.opentok.exception.OpenTokException;
 import com.opentok.exception.RequestException;
 import com.opentok.util.Crypto;
 import com.opentok.util.HttpClient;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-import org.xml.sax.InputSource;
 
 /**
 * Contains methods for creating OpenTok sessions, generating tokens, and working with archives.
@@ -240,7 +244,7 @@ public class OpenTok {
      * method of the Session object to get the session ID, which uniquely identifies the
      * session. You will use this session ID in the client SDKs to identify the session.
      */
-    public Session createSession(SessionProperties properties) throws OpenTokException {
+  /*  public Session createSession(SessionProperties properties) throws OpenTokException {
         Map<String, Collection<String>> params;
         String xpathQuery = "/sessions/Session/session_id";
 
@@ -264,6 +268,56 @@ public class OpenTok {
         } catch (XPathExpressionException e) {
             throw new OpenTokException("Cannot create session. Could not read the response: " + xmlResponse);
         }
+    } */
+    
+    // Retrun furure for create session 
+    
+    public Future<Session> createSession(SessionProperties properties)
+    {
+        ExecutorService threadPool=Executors.newSingleThreadExecutor();
+
+       
+       @SuppressWarnings("unchecked")
+       Future<Session> session= threadPool.submit(new Callable<Session>() {
+           
+           private SessionProperties properties;
+           Map<String, Collection<String>> params;
+           String xpathQuery = "/sessions/Session/session_id";
+
+           
+           private Callable init(SessionProperties properties)
+           {
+               this.properties=properties;
+               return this;
+           }
+           
+           
+            public Session call() throws OpenTokException, InterruptedException
+            {
+                if (this.properties != null) {
+                    params = properties.toMap();
+                } else {
+                    params = new SessionProperties.Builder().build().toMap();
+                }
+                
+                String xmlResponse = client.createSession(params);
+
+
+                // NOTE: doing this null check twice is kind of ugly
+                try {
+                    if (properties != null) {
+                        return new Session(readXml(xpathQuery, xmlResponse), apiKey, apiSecret, properties);
+                    } else {
+                        return new Session(readXml(xpathQuery, xmlResponse), apiKey, apiSecret);
+                    }
+                } catch (XPathExpressionException e) {
+                    throw new OpenTokException("Cannot create session. Could not read the response: " + xmlResponse);
+                }
+                
+            }
+        }.init(properties));
+       
+       return session;
     }
 
     /**
@@ -304,7 +358,7 @@ public class OpenTok {
      *
      * @see #createSession(SessionProperties)
      */
-    public Session createSession() throws OpenTokException {
+    public Future<Session> createSession() throws OpenTokException {
         return createSession(null);
     }
 

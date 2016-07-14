@@ -37,6 +37,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
@@ -44,14 +46,11 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.client.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.common.ProxySettings;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.opentok.Archive;
 import com.opentok.Archive.OutputMode;
-import com.opentok.constants.Version;
 import com.opentok.ArchiveList;
 import com.opentok.ArchiveMode;
 import com.opentok.ArchiveProperties;
@@ -97,7 +96,7 @@ public class OpenTokTest {
     }
 
     @Test
-    public void testCreateDefaultSession() throws OpenTokException {
+    public void testCreateDefaultSession() throws OpenTokException, InterruptedException, ExecutionException {
         String sessionId = "SESSIONID";
         stubFor(post(urlEqualTo("/session/create"))
                 .willReturn(aResponse()
@@ -107,14 +106,14 @@ public class OpenTokTest {
                                 "session_id>" + sessionId + "</session_id><partner_id>123456</partner_id><create_dt>" +
                                 "Mon Mar 17 00:41:31 PDT 2014</create_dt></Session></sessions>")));
 
-        Session session = sdk.createSession();
+        Future<Session> session = sdk.createSession();
 
         assertNotNull(session);
-        assertEquals(this.apiKey, session.getApiKey());
-        assertEquals(sessionId, session.getSessionId());
-        assertEquals(MediaMode.RELAYED, session.getProperties().mediaMode());
-        assertEquals(ArchiveMode.MANUAL, session.getProperties().archiveMode());
-        assertNull(session.getProperties().getLocation());
+        assertEquals(this.apiKey, ((Session)session.get()).getApiKey());
+        assertEquals(sessionId, ((Session)session.get()).getSessionId());
+        assertEquals(MediaMode.RELAYED, ((Session)session.get()).getProperties().mediaMode());
+        assertEquals(ArchiveMode.MANUAL, ((Session)session.get()).getProperties().archiveMode());
+        assertNull(((Session)session.get()).getProperties().getLocation());
 
         verify(postRequestedFor(urlMatching("/session/create"))
                 .withRequestBody(matching(".*p2p.preference=enabled.*"))
@@ -124,7 +123,7 @@ public class OpenTokTest {
     }
 
     @Test
-    public void testCreateRoutedSession() throws OpenTokException {
+    public void testCreateRoutedSession() throws OpenTokException, InterruptedException, ExecutionException {
         String sessionId = "SESSIONID";
         stubFor(post(urlEqualTo("/session/create"))
                 .willReturn(aResponse()
@@ -137,13 +136,13 @@ public class OpenTokTest {
         SessionProperties properties = new SessionProperties.Builder()
                 .mediaMode(MediaMode.ROUTED)
                 .build();
-        Session session = sdk.createSession(properties);
+       Future<Session> session = sdk.createSession(properties);
 
         assertNotNull(session);
-        assertEquals(this.apiKey, session.getApiKey());
-        assertEquals(sessionId, session.getSessionId());
-        assertEquals(MediaMode.ROUTED, session.getProperties().mediaMode());
-        assertNull(session.getProperties().getLocation());
+        assertEquals(this.apiKey, ((Session)session.get()).getApiKey());
+        assertEquals(sessionId, ((Session)session.get()).getSessionId());
+        assertEquals(MediaMode.ROUTED, ((Session)session.get()).getProperties().mediaMode());
+        assertNull(((Session)session.get()).getProperties().getLocation());
 
         verify(postRequestedFor(urlMatching("/session/create"))
                 // NOTE: this is a pretty bad way to verify, ideally we can decode the body and then query the object
@@ -153,7 +152,7 @@ public class OpenTokTest {
     }
 
     @Test
-    public void testCreateLocationHintSession() throws OpenTokException {
+    public void testCreateLocationHintSession() throws OpenTokException, InterruptedException, ExecutionException {
         String sessionId = "SESSIONID";
         String locationHint = "12.34.56.78";
         stubFor(post(urlEqualTo("/session/create"))
@@ -167,13 +166,13 @@ public class OpenTokTest {
         SessionProperties properties = new SessionProperties.Builder()
                 .location(locationHint)
                 .build();
-        Session session = sdk.createSession(properties);
+        Future<Session> session = sdk.createSession(properties);
 
         assertNotNull(session);
-        assertEquals(this.apiKey, session.getApiKey());
-        assertEquals(sessionId, session.getSessionId());
-        assertEquals(MediaMode.RELAYED, session.getProperties().mediaMode());
-        assertEquals(locationHint, session.getProperties().getLocation());
+        assertEquals(this.apiKey, ((Session)session.get()).getApiKey());
+        assertEquals(sessionId, ((Session)session.get()).getSessionId());
+        assertEquals(MediaMode.RELAYED, ((Session)session.get()).getProperties().mediaMode());
+        assertEquals(locationHint, ((Session)session.get()).getProperties().getLocation());
 
         verify(postRequestedFor(urlMatching("/session/create"))
                 // TODO: this is a pretty bad way to verify, ideally we can decode the body and then query the object
@@ -183,7 +182,7 @@ public class OpenTokTest {
     }
 
     @Test
-    public void testCreateAlwaysArchivedSession() throws OpenTokException {
+    public void testCreateAlwaysArchivedSession() throws OpenTokException, InterruptedException, ExecutionException {
         String sessionId = "SESSIONID";
         String locationHint = "12.34.56.78";
         stubFor(post(urlEqualTo("/session/create"))
@@ -197,12 +196,12 @@ public class OpenTokTest {
         SessionProperties properties = new SessionProperties.Builder()
                 .archiveMode(ArchiveMode.ALWAYS)
                 .build();
-        Session session = sdk.createSession(properties);
+        Future<Session> session = sdk.createSession(properties);
 
         assertNotNull(session);
-        assertEquals(this.apiKey, session.getApiKey());
-        assertEquals(sessionId, session.getSessionId());
-        assertEquals(ArchiveMode.ALWAYS, session.getProperties().archiveMode());
+        assertEquals(this.apiKey, ((Session)session.get()).getApiKey());
+        assertEquals(sessionId, ((Session)session.get()).getSessionId());
+        assertEquals(ArchiveMode.ALWAYS, ((Session)session.get()).getProperties().archiveMode());
 
 
         verify(postRequestedFor(urlMatching("/session/create"))
@@ -853,7 +852,7 @@ public class OpenTokTest {
     }
     
     @Test
-    public void testCreateSessionWithProxy() throws OpenTokException, UnknownHostException {
+    public void testCreateSessionWithProxy() throws OpenTokException, UnknownHostException, InterruptedException, ExecutionException {
         WireMockConfiguration proxyConfig = WireMockConfiguration.wireMockConfig();
         proxyConfig.dynamicPort();
         WireMockServer proxyingService = new WireMockServer(proxyConfig);
@@ -880,11 +879,11 @@ public class OpenTokTest {
                                 "Mon Mar 17 00:41:31 PDT 2014</create_dt></Session></sessions>")
                         ));
 
-        Session session = sdk.createSession();
+        Future<Session> session = sdk.createSession();
 
         assertNotNull(session);
-        assertEquals(this.apiKey, session.getApiKey());
-        assertEquals(sessionId, session.getSessionId());
+        assertEquals(this.apiKey, ((Session)session.get()).getApiKey());
+        assertEquals(sessionId, ((Session)session.get()).getSessionId());
 
         verify(postRequestedFor(urlMatching("/session/create")));
         
